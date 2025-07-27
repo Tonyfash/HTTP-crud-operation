@@ -1,42 +1,42 @@
-const studentDb = require("./db/database.json"); // To access the Student database we created
-const http = require("http"); // To access the http core module
-const fs = require("fs"); // to access the File system core module
-const PORT = 8080; // Assigned the port number that the server will listen to
+const studentDb = require("./db/database.json"); 
+const http = require("http"); 
+const fs = require("fs"); 
+const PORT = 8080; 
 
-const server = http.createServer((req, res) => { // Creates a server object
-    const {url,method} = req; // Object destructuring for request to access only the URL and Method
+const server = http.createServer((req, res) => { 
+    const {url,method} = req; 
 
-    if (url === "/create-student" && method === "POST") { // This two conditions that must be met before it can get the request sent from the Postman app.
-        let body = ""; // Assigned an empty string to body that will hold the chunks.
+    if (url === "/create-student" && method === "POST") {
+        let body = ""; 
 
-        req.on("data", (chunks) => { // This is the requested data coming from our Postman app
-            console.log("i am chunks:", chunks) // At this point, the data is just a chunk of code only the computer understands seen on the terminal
-            body += chunks // Concatenate the chunks with the empty string assigned earlier, so that we now have a normal JSON that can be understood  
-             console.log("i am raw body:", body) // At this point, we would see the normal JSON on the terminal
+        req.on("data", (chunks) => {
+            console.log("i am chunks:", chunks) 
+            body += chunks 
+             console.log("i am raw body:", body) 
         });
 
         req.on("end", () => {
-            const data = JSON.parse(body); // Here, the JSON is converted to a Javascript Object which is assigned to the variable data
+            const data = JSON.parse(body); 
             const uuid = require("uuid").v4();
             const student = {
-                id: uuid, // Creates a unique student id number for everytime on the studentDB array
-                name: data.name, // Name is mapped to the new value/property paired with the key name in the JS Object
-                gender: data.gender, // Gender is mapped to the new value paired with the key gender in the JS Object
-                age: data.age, // Age is mapped to the new value paired with the key age in the JS Object
-                isMarried: data.isMarried // isMarried is mapped to the new value paired with the key isMarried in the JS Object
+                id: uuid, 
+                name: data.name, 
+                gender: data.gender, 
+                age: data.age, 
+                isMarried: data.isMarried
             };
 
-            studentDb.push(student); // This pushes or adds new element/student data into the created array(The student database)
+            studentDb.push(student);
             console.log(studentDb);
-             fs.writeFile("./db/database.json", JSON.stringify(studentDb, null, 2), "utf8", (error, data) => { // This writes/adds up new information into the array created in the database with a pretty format
+             fs.writeFile("./db/database.json", JSON.stringify(studentDb, null, 2), "utf8", (error, data) => {
             if (error) {
-                res.writeHead(400, {"content-type": "text/plain"}); // This sets the status code and response header if the error condition was met
-                res.end("Bad request") // This sends the response and terminates the connection
+                res.writeHead(400, {"content-type": "text/plain"}); 
+                res.end("Bad request") 
             } else {
-                res.writeHead(201, {"content-type": "application/json"}) // This sets the status code and response header immediately the condition is met
-                res.end(JSON.stringify({ // This would terminate the connection after request has been sent
-                    message: "Student Created Successfully", // The message displayed after the connection has been terminated 
-                    data: student // The newly created data mapped to data is displayed too after the connection is terminated
+                res.writeHead(201, {"content-type": "application/json"}) 
+                res.end(JSON.stringify({ 
+                    message: "Student Created Successfully", 
+                    data: student
                 }))
             } 
           })
@@ -101,7 +101,27 @@ const server = http.createServer((req, res) => { // Creates a server object
                 }
             })
         })
+        // To delete a student
+    } else if (url.startsWith("/delete-students") && method === "DELETE") {
+        const id = url.split('/')[2];
+        const student = studentDb.find((e) => e.id === id)
+        const index = studentDb.findIndex((f) => f.id === student.id);
+        if (!student){
+            res.writeHead(404, {"content-type": "text/plain"})
+            res.end("Student not found");
+        }
+        studentDb.splice(index, 1)
+        fs.writeFile("/.db/database.json", JSON.stringify(studentDb, null, 2), "utf-8", (error, data) => {
+            if (error){
+                res.writeHead(500, {"content-type": "text/plain"})
+                res.end("Error! Couldn't delete a student")
+            } else {
+                res.writeHead(200, {"content-type": "text/plain"})
+                res.end("Student succesfully deleted")
+            }
+        })
     }
+     
 });
 
 server.listen(PORT, () => { // Starts the server on the specified port number
